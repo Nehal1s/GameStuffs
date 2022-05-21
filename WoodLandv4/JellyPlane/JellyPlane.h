@@ -29,11 +29,68 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	class UCameraComponent* Camera;
 
-	FTimerHandle Timer;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Camera")
+	UParticleSystem* Flash;
+	UPROPERTY(Replicated)
+	FTimerHandle ThrottleTimer;
+	UPROPERTY(Replicated)
+	FTimerHandle FireTimer;
 
 
 	virtual void BeginPlay() override;
 
+	float TakeDamage(float DamageAmount, struct FDamageEvent const &DamageEvent, class AController *EventInstigator, AActor *DamageCausor);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void DecreaseHealth();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnDeath(AActor* OtherActor);
+
+
+
+// Server Function
+	UFUNCTION(Server, Reliable, WithValidation)
+	void serverFire();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void serverSAbility();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void serverStopFire();
+
+	UFUNCTION(Server, Reliable)
+	void serverThrottleUp();
+
+	UFUNCTION(Server, Reliable)
+	void serverThrottleDown();
+
+	UFUNCTION(Server, Reliable)
+	void serverTurn(float value);
+
+	UFUNCTION(Server, Reliable)
+	void serverRoll(float value);
+	
+	UFUNCTION(Server, Reliable)
+	void serverLookUp(float value);
+	
+	UFUNCTION(Server, Reliable)
+	void serverDash();
+
+	UFUNCTION(Server, Reliable)
+	void serverDashStop();
+
+	void FireOnhalt(bool bDo, FRotator Rotation, FHitResult Hit);
+
+
+
+	UFUNCTION(NetMulticast, Reliable)
+	void spawnEmitters(FVector Location, FRotator Rotation);
+
+	UPROPERTY(BlueprintReadOnly)
+	AActor* DeathCausor;
+
+	//i don;t know what am i doing
 public:
 	UPROPERTY(EditAnywhere, Category = "Movements")
 	float TurnRate = 100;
@@ -51,31 +108,63 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+
+
 private:
 	// Movement Variables 
+	UPROPERTY(Replicated)
 	bool bThrottleUp = false;
+	UPROPERTY(Replicated)
 	bool bThrottleDown = false;
 
 	// Movement Variables
-	int ThrottleAmount = 50;
-	UPROPERTY(EditAnywhere, Category = "Movements")
+	UPROPERTY(Replicated)
+	int ThrottleAmount = 0;
+	int MaxSpeed = 100;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movements")
 	float AirControl = 2500.f;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movements")
+	float AirControl_Roll = 2500.f;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movements")
+	float sensitivity = 1;	
 	UPROPERTY(EditAnywhere, Category = "Movements")
-	float sensitivity = 1;
+	float MaxHealth = 500;	
+	UPROPERTY(Replicated,EditAnywhere, Category = "Movements")
+	float CurrentHealth;
+	UPROPERTY(Replicated, EditAnywhere, Category = "Movements")
+	float Range = 10000;	
 	
 
 	// Movement Fucntion
+	//  Client Functions
 	void ThrottleUp();
 	void ThrottleUp1();
 	void ThrottleDown();
 	void ThrottleDown1();
 	void Fire();
-	void Jump();
+	void StopFire();
+	void Dash();
+	void DashStop();
+	void SAbility();
 	UFUNCTION(BlueprintCallable, Category="Movements")
 	float GetSpeed();
+	UFUNCTION(BlueprintCallable, Category="Destro")
+	void Destroyed_Event();
+	UFUNCTION(BlueprintCallable, Category="Health")
+	float GetHealth();
+	UFUNCTION(BlueprintCallable, Category="Health")
+	void SetHealth(float value);
+
+	//Special ABility shit
+
+
+
 
 	void LookUp(float value);
 	void Turn(float value);
+	
 	void MoveForward(float value);
 	void MoveRight(float value);
 	void Roll(float value);
